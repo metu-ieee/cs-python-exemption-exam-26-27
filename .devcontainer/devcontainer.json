@@ -1,15 +1,21 @@
 {
-  "name": "METU IEEE Exam Environment",
+  "name": "CS Python Exemption Exam",
   
-  // ⬇️ INSTRUCTORS: Change this image to match the exam language!
-  "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
+  "image": "mcr.microsoft.com/devcontainers/python:3",
 
   "customizations": {
     "vscode": {
       "settings": {
-        "editor.formatOnSave": true
+        "[python]": {
+          "editor.defaultFormatter": "ms-python.black-formatter",
+          "editor.formatOnSave": true
+        },
+        "black-formatter.args": ["--line-length", "88"]
       },
-      "extensions": []
+      "extensions": [
+        "ms-python.python",
+        "ms-python.black-formatter"
+      ]
     }
   }
 }
