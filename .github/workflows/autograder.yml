@@ -1,0 +1,25 @@
+name: Hidden Autograder Blueprint
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  grade:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Student Code
+        uses: actions/checkout@v4
+        
+      - name: Checkout Hidden Test Cases
+        uses: actions/checkout@v4
+        with:
+          # ⬇️ INSTRUCTORS: Replace with your private test repository
+          repository: 'metu-ieee/hidden-tests-repo' 
+          # ⬇️ INSTRUCTORS: The secret token granting access to the private repo
+          token: ${{ secrets.CLASSROOM_TEST_TOKEN }}
+          path: 'tests'
+          
+      # ⬇️ INSTRUCTORS: Add your language-specific test commands below (e.g., pytest, make test)
+      - name: Run Tests
+        run: echo "Replace this with the actual grading command"

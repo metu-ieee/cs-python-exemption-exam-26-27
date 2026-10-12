@@ -1,0 +1,15 @@
+{
+  "name": "METU IEEE Exam Environment",
+  
+  // ⬇️ INSTRUCTORS: Change this image to match the exam language!
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
+
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "editor.formatOnSave": true
+      },
+      "extensions": []
+    }
+  }
+}
