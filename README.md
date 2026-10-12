@@ -1,4 +1,4 @@
-# ython 101 - Exemption Exam METU IEEE CS
+# Python 101 - Exemption Exam METU IEEE CS
 
 Welcome to the Python 101 Exemption Exam. Passing this exam proves your proficiency in core Python mechanics and exempts you from the 7-week beginner curriculum.
 
