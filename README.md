@@ -1,14 +1,16 @@
-# METU IEEE [Society Name] - [Course Name] Exemption Exam
+# ython 101 - Exemption Exam METU IEEE CS
 
-Welcome to the official exemption exam for **[Course Name]**. 
+Welcome to the Python 101 Exemption Exam. Passing this exam proves your proficiency in core Python mechanics and exempts you from the 7-week beginner curriculum.
 
-## Exam Rules & Logistics
-* **Duration:** You have exactly 2 hours from the official start time.
-* **Submission:** Your final grade will be based on the last commit pushed to this repository before the deadline.
-* **Lockout:** At the end of the 2-hour window, your `Write` access will be revoked by the administrators. 
+## Exam Rules
+* **Duration:** 2 Hours 10 Mins. 10 extra mins is given in case of any long setup duration issues.
+* **Grading:** Handled by a hidden automated `pytest` suite. Your code will be tested against edge-case inputs you cannot see.
+* **Submission:** Push your code using `git push`. The autograder will run automatically.
 
 ## How to Start
 1. Click the **Code** button at the top right.
-2. Select the **Codespaces** tab.
-3. Click **Create codespace on main**.
-4. Read the instructions inside the `/exam` folder and begin writing your solutions.
+2. Select the **Codespaces** tab and click **Create codespace on main**.
+3. Open the `/exam` folder.
+4. Solve the provided `.py` files. 
+
+**⚠️ CRITICAL WARNING:** Do not change the function names provided in the starter code, or the automated grader will instantly fail your submission.
