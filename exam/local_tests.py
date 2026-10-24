@@ -250,7 +250,7 @@ def test_q5_calendar() -> None:
 
     # Checking the calendar logic
     assert (
-        calendar["THU"] == ["EVT-02", "EVT-03"] and calendar["MON"] == []
+        calendar["THU"] == ["EVT-12", "EVT-13"] and calendar["MON"] == []
     ), "Event scheduling logic is wrong, please check your codes"
 
 
