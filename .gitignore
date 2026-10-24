@@ -10,3 +10,9 @@ Thumbs.db
 # IDE Folders
 .vscode/
 .idea/
+
+# Pycache
+**/__pycache__/
+*.pyc
+*.pyo
+*.pyd
