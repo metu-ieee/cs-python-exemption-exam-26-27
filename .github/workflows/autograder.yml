@@ -1,1 +1,210 @@
+name: Society OS Autograder
 
+on:
+  push:
+    branches: [ "main" ]
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  grade:
+    name: Grade Submission (3-Push Cap)
+    runs-on: ubuntu-latest
+    # Ignore initial template setup commits pushed by GitHub Classroom bots
+    if: ${{ github.actor != 'github-classroom[bot]' && !endsWith(github.actor, '[bot]') }}
+
+    steps:
+      - name: Check Push Attempt Count & Previous Best Score
+        id: gatekeeper
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          CURRENT_RUN_ID: ${{ github.run_id }}
+        run: |
+          python3 - << 'EOF'
+          import json
+          import os
+          import subprocess
+          import urllib.request
+          import zipfile
+          import io
+
+          repo = os.environ["REPO"]
+          current_run_id = int(os.environ["CURRENT_RUN_ID"])
+
+          # 1. Fetch all push workflow runs on main
+          runs_raw = subprocess.check_output(
+              ["gh", "api", f"/repos/{repo}/actions/workflows/autograder.yml/runs?branch=main&per_page=100"],
+              text=True,
+          )
+          runs_data = json.loads(runs_raw).get("workflow_runs", [])
+
+          # Filter out bot runs and sort chronologically by run ID
+          student_runs = [
+              r for r in runs_data
+              if r.get("actor", {}).get("login", "") != "github-classroom[bot]"
+              and not r.get("actor", {}).get("login", "").endswith("[bot]")
+              and r.get("id", 0) <= current_run_id
+          ]
+          student_runs.sort(key=lambda r: r["id"])
+          attempt_num = len(student_runs)
+
+          # 2. Fetch previous score artifacts to compute Highest Score so far
+          artifacts_raw = subprocess.check_output(
+              ["gh", "api", f"/repos/{repo}/actions/artifacts?per_page=100"],
+              text=True,
+          )
+          artifacts = json.loads(artifacts_raw).get("artifacts", [])
+          prev_best = 0
+
+          for art in artifacts:
+              if art.get("name", "").startswith("score-attempt-") and not art.get("expired", False):
+                  try:
+                      zip_bytes = subprocess.check_output(
+                          ["gh", "api", f"/repos/{repo}/actions/artifacts/{art['id']}/zip"]
+                      )
+                      with zipfile.ZipFile(io.BytesIO(zip_bytes)) as zf:
+                          if "score.json" in zf.namelist():
+                              data = json.loads(zf.read("score.json").decode("utf-8"))
+                              prev_best = max(prev_best, int(data.get("current_score", 0)))
+                  except Exception:
+                      pass
+
+          with open(os.environ["GITHUB_OUTPUT"], "a") as out:
+              out.write(f"attempt_num={attempt_num}\n")
+              out.write(f"prev_best={prev_best}\n")
+              out.write(f"allowed={'true' if attempt_num <= 3 else 'false'}\n")
+          EOF
+
+      - name: Enforce 3-Push Limit (If Exceeded)
+        if: steps.gatekeeper.outputs.allowed == 'false'
+        run: |
+          cat << 'EOF' >> $GITHUB_STEP_SUMMARY
+          ## 🚫 Push Limit Reached (Attempt ${{ steps.gatekeeper.outputs.attempt_num }} / 3)
+          You have already used all **3 official grading pushes**.
+          * This push was **not graded**.
+          * Your official locked highest score from Pushes 1–3 remains: **${{ steps.gatekeeper.outputs.prev_best }} / 100**.
+          EOF
+          echo "Push limit exceeded (Attempt ${{ steps.gatekeeper.outputs.attempt_num }}/3). Skipping grading."
+
+      - name: Checkout Student Code
+        if: steps.gatekeeper.outputs.allowed == 'true'
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        if: steps.gatekeeper.outputs.allowed == 'true'
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Pytest
+        if: steps.gatekeeper.outputs.allowed == 'true'
+        run: pip install pytest
+
+      - name: Checkout Hidden Test Cases
+        if: steps.gatekeeper.outputs.allowed == 'true'
+        uses: actions/checkout@v4
+        with:
+          repository: "metu-ieee/cs-python-exemption-exam-26-27-test-cases"
+          token: ${{ secrets.CLASSROOM_TEST_TOKEN }}
+          path: ".hidden_tests"
+
+      - name: Run Hidden Pytest Suite & Generate Scorecard
+        if: steps.gatekeeper.outputs.allowed == 'true'
+        id: grader
+        env:
+          ATTEMPT_NUM: ${{ steps.gatekeeper.outputs.attempt_num }}
+          PREV_BEST: ${{ steps.gatekeeper.outputs.prev_best }}
+        run: |
+          # Run pytest and emit JUnit XML (do not exit immediately if tests fail)
+          PYTHONPATH=exam pytest .hidden_tests/test_society_os.py --junitxml=junit_report.xml -q || true
+
+          # Immediately wipe hidden tests from the workspace
+          rm -rf .hidden_tests
+
+          python3 - << 'EOF'
+          import json
+          import os
+          import xml.etree.ElementTree as ET
+
+          attempt_num = int(os.environ["ATTEMPT_NUM"])
+          prev_best = int(os.environ["PREV_BEST"])
+
+          q_scores = {"Q1": 0, "Q2": 0, "Q3": 0, "Q4": 0, "Q5": 0}
+          tampered = False
+
+          if os.path.exists("junit_report.xml"):
+              tree = ET.parse("junit_report.xml")
+              root = tree.getroot()
+              for tc in root.iter("testcase"):
+                  name = tc.attrib.get("name", "")
+                  failures = list(tc.findall("failure")) + list(tc.findall("error"))
+                  if any("TAMPERING DETECTED" in (f.attrib.get("message", "") + (f.text or "")) for f in failures):
+                      tampered = True
+                  if not failures:
+                      for q_idx in range(1, 6):
+                          if name.startswith(f"test_q{q_idx}_"):
+                              q_scores[f"Q{q_idx}"] += 4
+
+          if tampered:
+              for k in q_scores:
+                  q_scores[k] = 0
+
+          current_score = sum(q_scores.values())
+          best_score = max(prev_best, current_score)
+          remaining = max(0, 3 - attempt_num)
+
+          # Save score artifact for future push comparisons
+          with open("score.json", "w") as f:
+              json.dump(
+                  {
+                      "attempt": attempt_num,
+                      "current_score": current_score,
+                      "best_score": best_score,
+                      "breakdown": q_scores,
+                      "tampered": tampered,
+                  },
+                  f,
+                  indent=2,
+              )
+
+          # Write student-facing summary table (reveals scores per question without leaking hidden test code)
+          summary_lines = [
+              f"## Society OS Autograder — Attempt {attempt_num} of 3",
+              "",
+          ]
+          if tampered:
+              summary_lines.append(
+                  "> **TAMPERING DETECTED:** `read_only_base.py` or `read_only_helpers.py` was modified. Restore the original read-only files!"
+              )
+              summary_lines.append("")
+
+          summary_lines.extend([
+              "| Section | Score | Max |",
+              "| :--- | :---: | :---: |",
+              f"| **Q1:** `student_classes.py` (`SocietyTeam` & Subclasses) | {q_scores['Q1']} | 20 |",
+              f"| **Q2:** `draft_active_members` | {q_scores['Q2']} | 20 |",
+              f"| **Q3:** `audit_branch_synergy` | {q_scores['Q3']} | 20 |",
+              f"| **Q4:** `parse_event_proposals` | {q_scores['Q4']} | 20 |",
+              f"| **Q5:** `build_weekly_calendar` | {q_scores['Q5']} | 20 |",
+              f"| **Current Push Total** | **{current_score}** | **100** |",
+              "",
+              f"### Official Highest Score (Best of {attempt_num}): **{best_score} / 100**",
+              f"* **Remaining Graded Pushes:** `{remaining} / 3`",
+          ])
+
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as sf:
+              sf.write("\n".join(summary_lines) + "\n")
+
+          print(f"Attempt {attempt_num}/3 | Current Score: {current_score}/100 | Best Score: {best_score}/100")
+          EOF
+
+      - name: Record Attempt Score Artifact
+        if: steps.gatekeeper.outputs.allowed == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: score-attempt-${{ steps.gatekeeper.outputs.attempt_num }}
+          path: score.json
+          retention-days: 90
