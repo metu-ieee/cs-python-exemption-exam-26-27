@@ -1,16 +1,10 @@
-# Python 101 - Exemption Exam METU IEEE CS
+# Python 101 — Exemption Exam: "Society OS" (METU IEEE CS)
 
-Welcome to the Python 101 Exemption Exam. Passing this exam proves your proficiency in core Python mechanics and exempts you from the 7-week beginner curriculum.
+Welcome to the official **METU IEEE Computer Society** Python 101 Exemption Exam. Passing this exam proves your proficiency in core Python mechanics and object-oriented programming, exempting you from the beginner education track and qualifying you as an **Active Member**.
 
-## Exam Rules
-* **Duration:** 2 Hours 10 Mins. 10 extra mins is given in case of any long setup duration issues.
-* **Grading:** Handled by a hidden automated `pytest` suite. Your code will be tested against edge-case inputs you cannot see.
-* **Submission:** Push your code using `git push`. The autograder will run automatically.
-
-## How to Start
-1. Click the **Code** button at the top right.
-2. Select the **Codespaces** tab and click **Create codespace on main**.
-3. Open the `/exam` folder.
-4. Solve the provided `.py` files. 
-
-**⚠️ CRITICAL WARNING:** Do not change the function names provided in the starter code, or the automated grader will instantly fail your submission.
+## Exam Rules & The 3-Push Cap
+* **Push Limit (3 Graded Pushes Max):** You have a strict limit of **3 pushes** to the `main` branch.
+* **Highest Score Wins:** Your official exam grade is the **highest score** achieved across your 3 pushes (`max(Push 1, Push 2, Push 3)`). Any push after your 3rd attempt will be automatically ignored by the autograder.
+* **Test Locally First:** Do not burn a push to test syntax! Run the local sanity script in your terminal as many times as you want before pushing:
+  ```bash
+  python exam/local_tests.py
