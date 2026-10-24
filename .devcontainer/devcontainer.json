@@ -1,20 +1,13 @@
 {
-  "name": "CS Python Exemption Exam",
-  
-  "image": "mcr.microsoft.com/devcontainers/python:3",
-
+  "name": "METU IEEE CS - Python Exemption Exam",
+  "image": "mcr.microsoft.com/devcontainers/python:1-3.12-bullseye",
+  "postCreateCommand": "pip install pytest black flake8",
   "customizations": {
     "vscode": {
-      "settings": {
-        "[python]": {
-          "editor.defaultFormatter": "ms-python.black-formatter",
-          "editor.formatOnSave": true
-        },
-        "black-formatter.args": ["--line-length", "88"]
-      },
       "extensions": [
         "ms-python.python",
-        "ms-python.black-formatter"
+        "ms-python.black-formatter",
+        "ms-python.flake8"
       ]
     }
   }
