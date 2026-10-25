@@ -12,8 +12,14 @@ jobs:
   grade:
     name: Grade Submission (3-Push Cap)
     runs-on: ubuntu-latest
-    # Ignore initial template setup commits pushed by GitHub Classroom bots
-    if: ${{ github.actor != 'github-classroom[bot]' && !endsWith(github.actor, '[bot]') }}
+    # 1. Never run on the master template repo itself
+    # 2. Ignore the 'Initial commit' created when cloning from template
+    # 3. Ignore bot commits
+    if: >-
+      github.repository != 'metu-ieee/cs-python-exemption-exam-26-27' &&
+      github.event.head_commit.message != 'Initial commit' &&
+      github.actor != 'github-classroom[bot]' &&
+      !endsWith(github.actor, '[bot]')
 
     steps:
       - name: Check Push Attempt Count & Previous Best Score
@@ -46,6 +52,7 @@ jobs:
               r for r in runs_data
               if r.get("actor", {}).get("login", "") != "github-classroom[bot]"
               and not r.get("actor", {}).get("login", "").endswith("[bot]")
+              and r.get("head_commit", {}).get("message", "") != "Initial commit"
               and r.get("id", 0) <= current_run_id
           ]
           student_runs.sort(key=lambda r: r["id"])
